@@ -29,6 +29,12 @@ const userSchema = new mongoose.Schema({
         default: ""
     },
 
+    // ✅ Needed to delete/replace image from Cloudinary
+    profileImagePublicId: {
+        type: String,
+        default: ""
+    },
+
     isEmailVerified: {
         type: Boolean,
         default: true

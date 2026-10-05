@@ -5,7 +5,10 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import authRoutes from "./src/routes/auth.route.js";
+import profileRoutes from "./src/routes/profile.route.js";
+
 import errorMiddleware from "./src/middleware/error.middleware.js";
+
 
 const app = express();
 
@@ -33,7 +36,7 @@ app.use(
 );
 
 
-// Cookie parser
+// Cookies
 app.use(cookieParser());
 
 
@@ -41,7 +44,7 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 
 
-// Health check
+// Health
 app.get(
     "/api/health",
     (req, res) => {
@@ -53,10 +56,17 @@ app.get(
 );
 
 
-// Routes
+// Auth
 app.use(
     "/api/auth",
     authRoutes
+);
+
+
+// Profile
+app.use(
+    "/api/profile",
+    profileRoutes
 );
 
 

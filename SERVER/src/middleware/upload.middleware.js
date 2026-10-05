@@ -2,7 +2,12 @@ import multer from "multer";
 
 const storage = multer.memoryStorage();
 
-const allowedTypes = [
+
+// ===============================
+// CHAT FILE UPLOAD
+// ===============================
+
+const chatAllowedTypes = [
     // Images
     "image/jpeg",
     "image/png",
@@ -27,15 +32,17 @@ const chatUpload = multer({
     storage,
 
     limits: {
-        fileSize: 10 * 1024 * 1024,
-        files: 5
+        fileSize: 100 * 1024 * 1024,
+        files: 50
     },
 
     fileFilter: (req, file, cb) => {
-        if (!allowedTypes.includes(file.mimetype)) {
+        if (!chatAllowedTypes.includes(
+                file.mimetype
+            )) {
             return cb(
                 new Error(
-                    "Unsupported file type. Please upload PDF, DOC, DOCX, TXT, PPT, PPTX or image."
+                    "Unsupported file type"
                 )
             );
         }
@@ -44,4 +51,42 @@ const chatUpload = multer({
     }
 });
 
-export default chatUpload;
+
+// ===============================
+// PROFILE IMAGE UPLOAD
+// ===============================
+
+const profileAllowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+];
+
+const profileUpload = multer({
+    storage,
+
+    limits: {
+        fileSize: 5 * 1024 * 1024,
+        files: 1
+    },
+
+    fileFilter: (req, file, cb) => {
+        if (!profileAllowedTypes.includes(
+                file.mimetype
+            )) {
+            return cb(
+                new Error(
+                    "Only JPG, PNG and WEBP images are allowed"
+                )
+            );
+        }
+
+        cb(null, true);
+    }
+});
+
+
+export {
+    chatUpload,
+    profileUpload
+};
