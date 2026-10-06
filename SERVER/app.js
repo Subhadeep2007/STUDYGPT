@@ -6,6 +6,7 @@ import morgan from "morgan";
 
 import authRoutes from "./src/routes/auth.route.js";
 import profileRoutes from "./src/routes/profile.route.js";
+import chatRoutes from "./src/routes/chat.route.js";
 
 import errorMiddleware from "./src/middleware/error.middleware.js";
 
@@ -13,11 +14,17 @@ import errorMiddleware from "./src/middleware/error.middleware.js";
 const app = express();
 
 
-// Security
+// ========================================
+// SECURITY
+// ========================================
+
 app.use(helmet());
 
 
+// ========================================
 // CORS
+// ========================================
+
 app.use(
     cors({
         origin: process.env.FRONTEND_URL,
@@ -26,7 +33,10 @@ app.use(
 );
 
 
-// Body parser
+// ========================================
+// BODY PARSER
+// ========================================
+
 app.use(express.json());
 
 app.use(
@@ -36,15 +46,24 @@ app.use(
 );
 
 
-// Cookies
+// ========================================
+// COOKIE PARSER
+// ========================================
+
 app.use(cookieParser());
 
 
-// Logger
+// ========================================
+// LOGGER
+// ========================================
+
 app.use(morgan("dev"));
 
 
-// Health
+// ========================================
+// HEALTH CHECK
+// ========================================
+
 app.get(
     "/api/health",
     (req, res) => {
@@ -56,21 +75,40 @@ app.get(
 );
 
 
-// Auth
+// ========================================
+// AUTH ROUTES
+// ========================================
+
 app.use(
     "/api/auth",
     authRoutes
 );
 
 
-// Profile
+// ========================================
+// PROFILE ROUTES
+// ========================================
+
 app.use(
     "/api/profile",
     profileRoutes
 );
 
 
-// Error middleware
+// ========================================
+// CHAT ROUTES
+// ========================================
+
+app.use(
+    "/api/chat",
+    chatRoutes
+);
+
+
+// ========================================
+// ERROR MIDDLEWARE
+// ========================================
+
 app.use(errorMiddleware);
 
 
