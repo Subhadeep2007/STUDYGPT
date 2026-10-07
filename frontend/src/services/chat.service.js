@@ -43,8 +43,7 @@ const getChat = async(
 
     const response =
         await api.get(
-            ` / api / chat / $ { chatId }
-`
+            `/api/chat/${chatId}`
         );
 
     return response.data;
@@ -62,8 +61,7 @@ const getChatWithMessages = async(
 
     const response =
         await api.get(
-            ` / api / chat / $ { chatId }
-/full`
+            `/api/chat/${chatId}/full`
         );
 
     return response.data;

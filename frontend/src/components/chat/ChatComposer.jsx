@@ -7,6 +7,7 @@ import {
     Image as ImageIcon,
     File
 } from "lucide-react";
+import { toast } from "sonner";
 import { uploadFiles } from "../../services/file.service.js";
 
 const ChatComposer = ({
@@ -141,7 +142,8 @@ const ChatComposer = ({
 
             const attachments = uploadedFiles.map((file) => {
                 return {
-                    fileId: file._id,
+                    // Backend file upload returns `id` (not `_id`).
+                    fileId: file.id,
                     filename: file.originalName,
                     mimeType: file.mimeType,
                     fileUrl: file.cloudinaryUrl
@@ -163,6 +165,15 @@ const ChatComposer = ({
             }
         } catch (error) {
             console.error("Message send error:", error);
+
+            const errorMessage =
+                error.response &&
+                error.response.data &&
+                error.response.data.message
+                    ? error.response.data.message
+                    : error.message || "Could not send message. Please try again.";
+
+            toast.error(errorMessage);
         }
     };
 

@@ -1,81 +1,64 @@
 import axios from "axios";
 
+const API_URL =
+    import.meta.env.VITE_BACKEND_URL;
 
-// ========================================
-// AXIOS INSTANCE
-// ========================================
+let accessToken = null;
+
+export const setAccessToken = (token) => {
+    accessToken = token;
+};
+
+export const clearAccessToken = () => {
+    accessToken = null;
+};
+
+export const getAccessToken = () => {
+    return accessToken;
+};
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL,
-
+    baseURL: API_URL,
     withCredentials: true,
-
     headers: {
         "Content-Type": "application/json"
     }
 });
 
+const refreshClient = axios.create({
+    baseURL: API_URL,
+    withCredentials: true
+});
 
-// ========================================
-// ACCESS TOKEN
-// ========================================
-
-let accessToken = null;
-
-
-// ========================================
-// SET ACCESS TOKEN
-// ========================================
-
-const setAccessToken = (token) => {
-    accessToken = token;
-};
-
-
-// ========================================
-// GET ACCESS TOKEN
-// ========================================
-
-const getAccessToken = () => {
-    return accessToken;
-};
-
-
-// ========================================
-// CLEAR ACCESS TOKEN
-// ========================================
-
-const clearAccessToken = () => {
-    accessToken = null;
-};
-
-
-// ========================================
-// REQUEST INTERCEPTOR
-// ========================================
 
 api.interceptors.request.use(
     (config) => {
+        // FormData must keep its multipart body. The browser adds the
+        // boundary, so remove the JSON header before Axios transforms it.
+        if (
+            typeof FormData !== "undefined" &&
+            config.data instanceof FormData &&
+            config.headers
+        ) {
+            config.headers.delete("Content-Type");
+        }
 
         if (accessToken) {
+            if (!config.headers) {
+                config.headers = {};
+            }
+
             config.headers.Authorization =
-                `
-Bearer $ { accessToken }
-`;
+                `Bearer ${accessToken}`;
         }
 
         return config;
     },
-
     (error) => {
         return Promise.reject(error);
     }
 );
 
-
-// ========================================
-// RESPONSE INTERCEPTOR
-// ========================================
 
 api.interceptors.response.use(
     (response) => {
@@ -83,115 +66,79 @@ api.interceptors.response.use(
     },
 
     async(error) => {
-
-        const originalRequest =
-            error.config;
-
-
-        // No response from server
-        if (!error.response) {
+        if (!error.response ||
+            error.response.status !== 401
+        ) {
             return Promise.reject(error);
         }
 
+        const originalRequest = error.config;
 
-        // Access token expired
-        if (
-            error.response.status === 401 &&
-            originalRequest &&
-            !originalRequest._retry
-        ) {
-
-            originalRequest._retry = true;
-
-
-            // Do not refresh the refresh endpoint itself
-            if (
-                originalRequest.url &&
-                originalRequest.url.includes(
-                    "/api/auth/refresh-token"
-                )
-            ) {
-                clearAccessToken();
-
-                return Promise.reject(
-                    error
-                );
-            }
-
-
-            try {
-
-                const response =
-                    await axios.post(
-                        `
-$ { import.meta.env.VITE_BACKEND_URL }
-/api/auth / refresh - token `, {}, {
-                            withCredentials: true
-                        }
-                    );
-
-
-                if (
-                    response.data &&
-                    response.data.success &&
-                    response.data.data &&
-                    response.data.data.accessToken
-                ) {
-
-                    const newAccessToken =
-                        response.data.data.accessToken;
-
-
-                    setAccessToken(
-                        newAccessToken
-                    );
-
-
-                    originalRequest.headers.Authorization =
-                        `
-Bearer $ { newAccessToken }
-`;
-
-
-                    return api(
-                        originalRequest
-                    );
-                }
-
-
-                clearAccessToken();
-
-                return Promise.reject(
-                    error
-                );
-
-            } catch (refreshError) {
-
-                clearAccessToken();
-
-                return Promise.reject(
-                    refreshError
-                );
-            }
+        if (!originalRequest) {
+            return Promise.reject(error);
         }
 
+        const requestUrl = originalRequest.url || "";
 
-        return Promise.reject(
-            error
-        );
+        if (
+            requestUrl.includes(
+                "/api/auth/refresh-token"
+            )
+        ) {
+            return Promise.reject(error);
+        }
+
+        if (originalRequest._retry) {
+            return Promise.reject(error);
+        }
+
+        originalRequest._retry = true;
+
+        try {
+            const refreshResponse =
+                await refreshClient.post(
+                    "/api/auth/refresh-token"
+                );
+
+            const responseData =
+                refreshResponse.data;
+
+            if (
+                responseData &&
+                responseData.success &&
+                responseData.data &&
+                responseData.data.accessToken
+            ) {
+                const newAccessToken =
+                    responseData.data.accessToken;
+
+                setAccessToken(
+                    newAccessToken
+                );
+
+                if (!originalRequest.headers) {
+                    originalRequest.headers = {};
+                }
+
+                originalRequest.headers.Authorization =
+                    `Bearer ${newAccessToken}`;
+
+                return api(
+                    originalRequest
+                );
+            }
+
+            clearAccessToken();
+
+            return Promise.reject(error);
+        } catch (refreshError) {
+            clearAccessToken();
+
+            return Promise.reject(
+                refreshError
+            );
+        }
     }
 );
-
-
-// ========================================
-// EXPORT
-// ========================================
-
-export {
-    setAccessToken,
-    getAccessToken,
-    clearAccessToken
-};
-
 
 export default api;

@@ -1,4 +1,3 @@
-
 import {
     createContext,
     useContext,
@@ -6,186 +5,156 @@ import {
     useState
 } from "react";
 
-import api, {
+import {
+    loginUser,
+    refreshAuthSession,
+    logoutUser
+} from "../services/auth.service.js";
+
+import {
     setAccessToken,
     clearAccessToken
 } from "../services/api.js";
 
 
-const AuthContext =
-    createContext(null);
+const AuthContext = createContext(null);
 
 
-// ========================================
-// AUTH PROVIDER
-// ========================================
-
-const AuthProvider = ({
+export const AuthProvider = ({
     children
 }) => {
 
-    const [user, setUser] =
-        useState(null);
-
-    const [loading, setLoading] =
-        useState(true);
+    const [user, setUser] = useState(null);
 
     const [isAuthenticated, setIsAuthenticated] =
         useState(false);
 
+    const [loading, setLoading] =
+        useState(true);
 
-    // ========================================
-    // LOGIN
-    // ========================================
-
-    const login = async (
-        email,
-        password
-    ) => {
-
-        const response =
-            await api.post(
-                "/api/auth/login",
-                {
-                    email,
-                    password
-                }
-            );
-
-
-        if (
-            !response.data ||
-            !response.data.success
-        ) {
-            throw new Error(
-                "Login failed"
-            );
-        }
-
-
-        const data =
-            response.data.data;
-
-
-        if (
-            !data ||
-            !data.accessToken ||
-            !data.user
-        ) {
-            throw new Error(
-                "Invalid login response"
-            );
-        }
-
-
-        setAccessToken(
-            data.accessToken
-        );
-
-
-        setUser(
-            data.user
-        );
-
-
-        setIsAuthenticated(
-            true
-        );
-
-
-        return data;
-    };
-
-
-    // ========================================
-    // REFRESH SESSION
-    // ========================================
 
     const refreshSession = async () => {
 
         try {
 
             const response =
-                await api.post(
-                    "/api/auth/refresh-token"
-                );
-
+                await refreshAuthSession();
 
             if (
-                !response.data ||
-                !response.data.success
+                response &&
+                response.success &&
+                response.data &&
+                response.data.accessToken &&
+                response.data.user
             ) {
-                throw new Error(
-                    "Session refresh failed"
+
+                setAccessToken(
+                    response.data.accessToken
                 );
+
+                setUser(
+                    response.data.user
+                );
+
+                setIsAuthenticated(true);
+
+                return response.data;
             }
 
+            clearAccessToken();
 
-            const data =
-                response.data.data;
+            setUser(null);
+            setIsAuthenticated(false);
 
-
-            if (
-                !data ||
-                !data.accessToken ||
-                !data.user
-            ) {
-                throw new Error(
-                    "Invalid refresh response"
-                );
-            }
-
-
-            setAccessToken(
-                data.accessToken
-            );
-
-
-            setUser(
-                data.user
-            );
-
-
-            setIsAuthenticated(
-                true
-            );
-
-
-            return data;
+            return null;
 
         } catch (error) {
 
             clearAccessToken();
 
             setUser(null);
-
-            setIsAuthenticated(
-                false
-            );
-
+            setIsAuthenticated(false);
 
             return null;
         }
     };
 
 
-    // ========================================
-    // LOGOUT
-    // ========================================
+    const login = async ({
+        email,
+        password
+    }) => {
+
+        const response =
+            await loginUser({
+                email,
+                password
+            });
+
+
+        if (
+            response &&
+            response.success &&
+            response.data &&
+            response.data.requiresEmailVerification
+        ) {
+
+            return response.data;
+        }
+
+
+        if (
+            !response ||
+            !response.success ||
+            !response.data ||
+            !response.data.accessToken ||
+            !response.data.user
+        ) {
+
+            throw new Error(
+                response &&
+                response.message
+                    ? response.message
+                    : "Invalid login response"
+            );
+        }
+
+
+        const accessToken =
+            response.data.accessToken;
+
+        const loggedInUser =
+            response.data.user;
+
+
+        setAccessToken(
+            accessToken
+        );
+
+        setUser(
+            loggedInUser
+        );
+
+        setIsAuthenticated(
+            true
+        );
+
+
+        return response.data;
+    };
+
 
     const logout = async () => {
 
         try {
 
-            await api.post(
-                "/api/auth/logout"
-            );
+            await logoutUser();
 
         } catch (error) {
 
             console.error(
-                "Logout request failed:",
-                error.message
+                "Logout API error:",
+                error
             );
 
         } finally {
@@ -194,20 +163,14 @@ const AuthProvider = ({
 
             setUser(null);
 
-            setIsAuthenticated(
-                false
-            );
+            setIsAuthenticated(false);
         }
     };
 
 
-    // ========================================
-    // INITIAL SESSION CHECK
-    // ========================================
-
     useEffect(() => {
 
-        const initializeAuth =
+        const restoreSession =
             async () => {
 
                 setLoading(true);
@@ -217,21 +180,15 @@ const AuthProvider = ({
                 setLoading(false);
             };
 
-
-        initializeAuth();
+        restoreSession();
 
     }, []);
 
-
-    // ========================================
-    // CONTEXT VALUE
-    // ========================================
 
     const value = {
         user,
         loading,
         isAuthenticated,
-
         login,
         logout,
         refreshSession
@@ -248,33 +205,9 @@ const AuthProvider = ({
 };
 
 
-// ========================================
-// CUSTOM HOOK
-// ========================================
+export const useAuth = () => {
 
-const useAuth = () => {
-
-    const context =
-        useContext(
-            AuthContext
-        );
-
-
-    if (!context) {
-        throw new Error(
-            "useAuth must be used inside AuthProvider"
-        );
-    }
-
-
-    return context;
+    return useContext(
+        AuthContext
+    );
 };
-
-
-export {
-    AuthProvider,
-    useAuth
-};
-
-
-export default AuthContext;

@@ -212,6 +212,22 @@ const Chat = () => {
         try {
             setSendingMessage(true);
 
+            // User message ko turant screen par dikhao.
+            // Server ka AI response baad mein aayega.
+            const temporaryMessageId = `temporary-${Date.now()}`;
+            const temporaryMessage = {
+                _id: temporaryMessageId,
+                role: "user",
+                content: messagePayload.content || "",
+                attachments: messagePayload.attachments || [],
+                status: "sent",
+                createdAt: new Date().toISOString()
+            };
+
+            setMessages((previousMessages) => {
+                return [...previousMessages, temporaryMessage];
+            });
+
             const response = await sendMessage({
                 chatId: chatId,
                 content: messagePayload.content || "",
@@ -226,6 +242,13 @@ const Chat = () => {
             }
 
             const data = response.data;
+
+            // Temporary message ko database se aaye asli message se badlo.
+            setMessages((previousMessages) => {
+                return previousMessages.filter((message) => {
+                    return message._id !== temporaryMessageId;
+                });
+            });
 
             if (data.userMessage) {
                 setMessages((previousMessages) => {
@@ -268,6 +291,10 @@ const Chat = () => {
             }, 100);
         } catch (error) {
             console.error("Send message error:", error);
+
+            // Server user message save kar chuka ho sakta hai,
+            // isliye chat dobara load karke usse screen par dikhao.
+            await loadCurrentChat(chatId);
 
             toast.error(
                 error.response &&

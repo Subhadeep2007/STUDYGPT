@@ -7,6 +7,7 @@ import morgan from "morgan";
 import authRoutes from "./src/routes/auth.route.js";
 import profileRoutes from "./src/routes/profile.route.js";
 import chatRoutes from "./src/routes/chat.route.js";
+import fileRoutes from "./src/routes/file.route.js";
 
 import errorMiddleware from "./src/middleware/error.middleware.js";
 
@@ -92,6 +93,16 @@ app.use(
 app.use(
     "/api/profile",
     profileRoutes
+);
+
+
+// ========================================
+// FILE ROUTES
+// ========================================
+
+app.use(
+    "/api/files",
+    fileRoutes
 );
 
 

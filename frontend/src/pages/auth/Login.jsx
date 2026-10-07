@@ -81,10 +81,11 @@ const Login = () => {
             setLoading(true);
 
 
-            await login(
-                email.trim(),
+
+            await login({
+                email: email.trim().toLowerCase(),
                 password
-            );
+            });
 
 
             toast.success(
@@ -112,6 +113,24 @@ const Login = () => {
 
                 message =
                     error.response.data.message;
+            }
+
+
+            if (
+                message.toLowerCase().includes("verify your email")
+            ) {
+                toast.info("Please verify your email first.");
+
+                navigate(
+                    "/verify-email",
+                    {
+                        state: {
+                            email: email.trim().toLowerCase()
+                        }
+                    }
+                );
+
+                return;
             }
 
 

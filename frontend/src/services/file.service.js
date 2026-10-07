@@ -82,8 +82,7 @@ const getFile = async(
 
     const response =
         await api.get(
-            ` / api / files / $ { fileId }
-`
+            `/api/files/${fileId}`
         );
 
 
@@ -101,8 +100,7 @@ const getChatFiles = async(
 
     const response =
         await api.get(
-            ` / api / files / chat / $ { chatId }
-`
+            `/api/files/chat/${chatId}`
         );
 
 
@@ -120,8 +118,7 @@ const deleteFile = async(
 
     const response =
         await api.delete(
-            ` / api / files / $ { fileId }
-`
+            `/api/files/${fileId}`
         );
 
 
