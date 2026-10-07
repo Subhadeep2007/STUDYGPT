@@ -713,10 +713,17 @@ const Chat = () => {
                         }}
                         className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
-                        <UserCircle2
-                            size={25}
-                            className="shrink-0 text-slate-500"
-                        />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-slate-500 dark:bg-slate-700">
+                            {user && user.profileImage ? (
+                                <img
+                                    src={user.profileImage}
+                                    alt={user.name || "Profile"}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <UserCircle2 size={25} />
+                            )}
+                        </div>
 
                         {(sidebarOpen || mobileSidebarOpen) && (
                             <div className="min-w-0">
@@ -766,7 +773,15 @@ const Chat = () => {
                         className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                         title="Profile"
                     >
-                        <UserCircle2 size={22} />
+                        {user && user.profileImage ? (
+                            <img
+                                src={user.profileImage}
+                                alt={user.name || "Profile"}
+                                className="h-8 w-8 rounded-full object-cover"
+                            />
+                        ) : (
+                            <UserCircle2 size={22} />
+                        )}
                     </button>
                 </header>
 
@@ -813,6 +828,8 @@ const Chat = () => {
                                         <MessageBubble
                                             key={messageId}
                                             message={message}
+                                            user={user}
+                                            displayName={user && user.name ? user.name : "You"}
                                             onMessageUpdated={
                                                 handleMessageUpdated
                                             }

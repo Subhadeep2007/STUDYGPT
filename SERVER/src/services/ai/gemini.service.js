@@ -532,9 +532,32 @@ const callGemini = async({
 
 
     if (lastError) {
-        throw new Error(
-            "Gemini is temporarily unavailable. Please try again shortly."
+        const status = Number(
+            lastError.status || lastError.code
         );
+
+        let message =
+            "Gemini is temporarily unavailable. Please try again shortly.";
+
+        if (status === 429) {
+            message =
+                "Gemini request limit or quota reached. Please wait and check your Google AI Studio quota.";
+        }
+
+        const friendlyError = new Error(
+            message,
+            { cause: lastError }
+        );
+
+        // Frontend ko bhi provider ka sahi status code mile.
+        friendlyError.statusCode =
+            status >= 500 && status <= 599
+                ? status
+                : status === 429
+                    ? 429
+                    : 503;
+
+        throw friendlyError;
     }
 
 

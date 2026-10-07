@@ -168,6 +168,21 @@ export const AuthProvider = ({
     };
 
 
+    // Profile page se badle hue username/image ko app mein turant dikhaye.
+    const updateUser = (userChanges) => {
+        setUser((currentUser) => {
+            if (!currentUser) {
+                return currentUser;
+            }
+
+            return {
+                ...currentUser,
+                ...userChanges
+            };
+        });
+    };
+
+
     useEffect(() => {
 
         const restoreSession =
@@ -191,6 +206,7 @@ export const AuthProvider = ({
         isAuthenticated,
         login,
         logout,
+        updateUser,
         refreshSession
     };
 

@@ -33,7 +33,8 @@ const Profile = () => {
 
     const {
         user,
-        logout
+        logout,
+        updateUser
     } = useAuth();
 
 
@@ -281,6 +282,13 @@ const Profile = () => {
 
             if (updatedProfile) {
 
+                const savedUsername =
+                    updatedProfile.username || trimmedUsername;
+
+                updateUser({
+                    name: savedUsername
+                });
+
                 setProfile(
                     updatedProfile
                 );
@@ -504,6 +512,10 @@ const Profile = () => {
                 ""
             );
 
+            updateUser({
+                profileImage: updatedProfile.profileImage || ""
+            });
+
 
             setSelectedImage(
                 null
@@ -624,6 +636,10 @@ const Profile = () => {
 
             if (updatedProfile) {
 
+                updateUser({
+                    profileImage: updatedProfile.profileImage || ""
+                });
+
                 setProfile(
                     updatedProfile
                 );
@@ -651,6 +667,10 @@ const Profile = () => {
                 setImagePreview(
                     ""
                 );
+
+                updateUser({
+                    profileImage: ""
+                });
             }
 
 

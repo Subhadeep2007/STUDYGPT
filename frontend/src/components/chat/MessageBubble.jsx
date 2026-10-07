@@ -9,6 +9,8 @@ import {
     Edit3,
     LoaderCircle,
     Trash2,
+    FileText,
+    Image as ImageIcon,
     UserRound,
     X
 } from "lucide-react";
@@ -665,6 +667,76 @@ const MessageBubble = ({
                         <div className="group">
 
                             <div className="rounded-2xl rounded-br-md bg-black px-4 py-3 text-white">
+
+                                {Array.isArray(message.attachments) &&
+                                    message.attachments.map((attachment, index) => {
+                                        const fileUrl = attachment.fileUrl;
+                                        const mimeType = attachment.mimeType || "";
+                                        const fileName = attachment.filename || "Uploaded file";
+
+                                        if (!fileUrl) {
+                                            return null;
+                                        }
+
+                                        if (mimeType.startsWith("image/")) {
+                                            return (
+                                                <a
+                                                    key={attachment.fileId || `${fileName}-${index}`}
+                                                    href={fileUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="mb-3 block overflow-hidden rounded-xl"
+                                                >
+                                                    <img
+                                                        src={fileUrl}
+                                                        alt={fileName}
+                                                        className="max-h-80 max-w-full rounded-xl object-contain"
+                                                        loading="lazy"
+                                                    />
+                                                </a>
+                                            );
+                                        }
+
+                                        if (mimeType === "application/pdf") {
+                                            return (
+                                                <div
+                                                    key={attachment.fileId || `${fileName}-${index}`}
+                                                    className="mb-3 w-full overflow-hidden rounded-xl bg-white text-slate-800"
+                                                >
+                                                    <iframe
+                                                        src={fileUrl}
+                                                        title={fileName}
+                                                        className="h-72 w-full border-0"
+                                                    />
+                                                    <a
+                                                        href={fileUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="block truncate px-3 py-2 text-xs font-medium text-blue-700 underline"
+                                                    >
+                                                        {fileName} · Open PDF
+                                                    </a>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <a
+                                                key={attachment.fileId || `${fileName}-${index}`}
+                                                href={fileUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="mb-3 flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
+                                            >
+                                                {mimeType.startsWith("image/") ? (
+                                                    <ImageIcon size={17} />
+                                                ) : (
+                                                    <FileText size={17} />
+                                                )}
+                                                <span className="truncate underline">{fileName}</span>
+                                            </a>
+                                        );
+                                    })}
 
                                 <p className="whitespace-pre-wrap text-sm leading-6">
                                     {message.content}
