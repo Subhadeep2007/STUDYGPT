@@ -1,5 +1,5 @@
 import {
-    BrowserRouter,
+    HashRouter,
     Navigate,
     Route,
     Routes
@@ -36,6 +36,7 @@ import Profile from "../pages/profile/profile.jsx";
 // ========================================
 
 const LoadingScreen = () => {
+
     return (
         <div className="min-h-screen flex items-center justify-center bg-white">
 
@@ -135,7 +136,7 @@ const PublicRoute = ({
 const AppRoutes = () => {
 
     return (
-        <BrowserRouter>
+        <HashRouter>
 
             <Routes>
 
@@ -164,6 +165,7 @@ const AppRoutes = () => {
                     }
                 />
 
+
                 <Route
                     path="/register"
                     element={
@@ -172,6 +174,7 @@ const AppRoutes = () => {
                         </PublicRoute>
                     }
                 />
+
 
                 <Route
                     path="/verify-email"
@@ -182,6 +185,7 @@ const AppRoutes = () => {
                     }
                 />
 
+
                 <Route
                     path="/forgot-password"
                     element={
@@ -190,6 +194,7 @@ const AppRoutes = () => {
                         </PublicRoute>
                     }
                 />
+
 
                 <Route
                     path="/reset-password"
@@ -214,6 +219,7 @@ const AppRoutes = () => {
                     }
                 />
 
+
                 <Route
                     path="/chat/:chatId"
                     element={
@@ -222,6 +228,7 @@ const AppRoutes = () => {
                         </ProtectedRoute>
                     }
                 />
+
 
                 <Route
                     path="/profile"
@@ -249,7 +256,7 @@ const AppRoutes = () => {
 
             </Routes>
 
-        </BrowserRouter>
+        </HashRouter>
     );
 };
 
