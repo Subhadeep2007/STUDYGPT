@@ -1,4 +1,3 @@
-
 import {
     BrowserRouter,
     Navigate,
@@ -14,6 +13,8 @@ import {
 // ========================================
 // PUBLIC PAGES
 // ========================================
+
+import Home from "../pages/home/Home.jsx";
 
 import Login from "../pages/auth/Login.jsx";
 import Register from "../pages/auth/Register.jsx";
@@ -37,13 +38,17 @@ import Profile from "../pages/profile/Profile.jsx";
 const LoadingScreen = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-white">
+
             <div className="flex flex-col items-center gap-4">
+
                 <div className="w-10 h-10 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
 
                 <p className="text-sm text-gray-500">
                     Loading StudyGPT...
                 </p>
+
             </div>
+
         </div>
     );
 };
@@ -64,6 +69,7 @@ const ProtectedRoute = ({
 
 
     if (loading) {
+
         return (
             <LoadingScreen />
         );
@@ -71,6 +77,7 @@ const ProtectedRoute = ({
 
 
     if (!isAuthenticated) {
+
         return (
             <Navigate
                 to="/login"
@@ -99,6 +106,7 @@ const PublicRoute = ({
 
 
     if (loading) {
+
         return (
             <LoadingScreen />
         );
@@ -106,6 +114,7 @@ const PublicRoute = ({
 
 
     if (isAuthenticated) {
+
         return (
             <Navigate
                 to="/chat"
@@ -131,16 +140,13 @@ const AppRoutes = () => {
             <Routes>
 
                 {/* =========================
-                    ROOT
+                    HOME
                 ========================== */}
 
                 <Route
                     path="/"
                     element={
-                        <Navigate
-                            to="/chat"
-                            replace
-                        />
+                        <Home />
                     }
                 />
 
@@ -235,7 +241,7 @@ const AppRoutes = () => {
                     path="*"
                     element={
                         <Navigate
-                            to="/chat"
+                            to="/"
                             replace
                         />
                     }
