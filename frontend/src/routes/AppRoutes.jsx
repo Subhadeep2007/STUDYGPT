@@ -28,7 +28,7 @@ import ResetPassword from "../pages/auth/ResetPassword.jsx";
 // ========================================
 
 import Chat from "../pages/chat/Chat.jsx";
-import Profile from "../pages/profile/Profile.jsx";
+import Profile from "../pages/profile/profile.jsx";
 
 
 // ========================================
