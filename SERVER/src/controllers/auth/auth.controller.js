@@ -6,6 +6,7 @@ import {
     refreshAccessToken,
     logoutUser,
     forgotPassword,
+    verifyResetPasswordOTP,
     resetPassword,
     changePassword
 } from "../../services/auth/auth.service.js";
@@ -229,6 +230,27 @@ const resetPasswordController = async(
 };
 
 
+const verifyResetPasswordOTPController = async(
+    req,
+    res,
+    next
+) => {
+    try {
+        await verifyResetPasswordOTP({
+            email: req.body.email,
+            otp: req.body.otp
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Reset OTP verified successfully"
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 const changePasswordController = async(
     req,
     res,
@@ -262,6 +284,7 @@ export {
     refreshToken,
     logout,
     forgotPasswordController,
+    verifyResetPasswordOTPController,
     resetPasswordController,
     changePasswordController
 };

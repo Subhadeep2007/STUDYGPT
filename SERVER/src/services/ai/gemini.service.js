@@ -496,6 +496,15 @@ const callGemini = async({
             };
 
         } catch (error) {
+            console.error("=================================");
+            console.error("GEMINI API ERROR");
+            console.error("Message:", error.message);
+            console.error("Status:", error.status);
+            console.error("Code:", error.code);
+            console.error("Name:", error.name);
+            console.error("Full Error:", error);
+            console.error("=================================");
+
 
             lastError =
                 error;
@@ -545,17 +554,16 @@ const callGemini = async({
         }
 
         const friendlyError = new Error(
-            message,
-            { cause: lastError }
+            message, { cause: lastError }
         );
 
         // Frontend ko bhi provider ka sahi status code mile.
         friendlyError.statusCode =
-            status >= 500 && status <= 599
-                ? status
-                : status === 429
-                    ? 429
-                    : 503;
+            status >= 500 && status <= 599 ?
+            status :
+            status === 429 ?
+            429 :
+            503;
 
         throw friendlyError;
     }

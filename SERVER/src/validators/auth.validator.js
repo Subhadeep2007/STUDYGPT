@@ -71,6 +71,19 @@ const forgotPasswordSchema = Joi.object({
         .required()
 });
 
+const verifyResetPasswordSchema = Joi.object({
+    email: Joi.string()
+        .email()
+        .lowercase()
+        .trim()
+        .required(),
+
+    otp: Joi.string()
+        .length(6)
+        .pattern(/^[0-9]+$/)
+        .required()
+});
+
 const resetPasswordSchema = Joi.object({
     email: Joi.string()
         .email()
@@ -99,6 +112,7 @@ export {
     resendVerificationSchema,
     loginSchema,
     forgotPasswordSchema,
+    verifyResetPasswordSchema,
     resetPasswordSchema,
     changePasswordSchema
 };

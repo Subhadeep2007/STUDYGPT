@@ -441,13 +441,37 @@ const forgotPassword = async(
 };
 
 
+const verifyResetPasswordOTP = async({
+    email,
+    otp
+}) => {
+    const user = await User.findOne({ email })
+        .select("+resetPasswordOTP +resetPasswordOTPExpire");
+
+    if (!user || !user.resetPasswordOTP) {
+        throw new Error("Invalid or expired reset OTP");
+    }
+
+    if (!user.resetPasswordOTPExpire ||
+        user.resetPasswordOTPExpire < new Date()) {
+        throw new Error("Reset OTP has expired");
+    }
+
+    if (user.resetPasswordOTP !== otp) {
+        throw new Error("Invalid reset OTP");
+    }
+
+    return { email: user.email };
+};
+
+
 const resetPassword = async({
     email,
     otp,
     newPassword
 }) => {
-    const user =
-        await User.findOne({ email });
+    const user = await User.findOne({ email })
+        .select("+resetPasswordOTP +resetPasswordOTPExpire");
 
     if (!user) {
         throw new Error(
@@ -570,6 +594,7 @@ export {
     refreshAccessToken,
     logoutUser,
     forgotPassword,
+    verifyResetPasswordOTP,
     resetPassword,
     changePassword
 };

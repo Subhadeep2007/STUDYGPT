@@ -429,6 +429,28 @@ const MessageBubble = ({
 
             setSavingEdit(true);
 
+            setEditing(false);
+
+            if (onMessageUpdated) {
+                const messageId = message._id || message.id;
+
+                onMessageUpdated({
+                    pending: true,
+                    userMessage: {
+                        ...message,
+                        content: trimmedContent,
+                        isEdited: true
+                    },
+                    assistantMessage: {
+                        _id: `pending-edit-${messageId}`,
+                        role: "assistant",
+                        content: "",
+                        status: "processing",
+                        createdAt: new Date().toISOString()
+                    }
+                });
+            }
+
 
             const result =
                 await editMessage(
@@ -449,12 +471,11 @@ const MessageBubble = ({
             }
 
 
-            setEditing(false);
-
-
-            toast.success(
-                "Message updated"
-            );
+            if (result.data?.assistantMessage?.status === "failed") {
+                toast.warning("Message saved, but AI could not generate a response.");
+            } else {
+                toast.success("Message updated and response regenerated");
+            }
 
 
             if (onMessageUpdated) {
@@ -465,6 +486,12 @@ const MessageBubble = ({
             }
 
         } catch (error) {
+
+            setEditing(true);
+
+            if (onMessageUpdated) {
+                onMessageUpdated({ reload: true });
+            }
 
             let errorMessage =
                 "Unable to edit message";
@@ -862,8 +889,12 @@ const MessageBubble = ({
 
                 <div className="rounded-2xl rounded-bl-md bg-slate-100 px-4 py-3 text-slate-800">
 
-                    {message.status ===
-                    "failed" ? (
+                    {message.status === "processing" ? (
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                            <LoaderCircle size={15} className="animate-spin" />
+                            Generating response...
+                        </div>
+                    ) : message.status === "failed" ? (
 
                         <div>
 

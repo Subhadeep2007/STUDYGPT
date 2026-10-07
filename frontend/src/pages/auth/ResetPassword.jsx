@@ -23,6 +23,7 @@ import {
 } from "sonner";
 
 import {
+    verifyResetPasswordOTP,
     resetPassword
 } from "../../services/auth.service.js";
 
@@ -56,6 +57,9 @@ const ResetPassword = () => {
 
     const [otp, setOtp] =
         useState("");
+
+    const [otpVerified, setOtpVerified] =
+        useState(false);
 
     const [newPassword, setNewPassword] =
         useState("");
@@ -99,6 +103,44 @@ const ResetPassword = () => {
             setOtp(
                 numericValue
             );
+            setOtpVerified(false);
+        }
+    };
+
+
+    const handleVerifyOTP = async () => {
+        const trimmedEmail = email.trim().toLowerCase();
+
+        if (!trimmedEmail) {
+            toast.error("Please enter your email");
+            return;
+        }
+
+        if (otp.length !== 6) {
+            toast.error("Please enter the 6-digit OTP");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const result = await verifyResetPasswordOTP({
+                email: trimmedEmail,
+                otp
+            });
+
+            if (!result || !result.success) {
+                throw new Error("Unable to verify reset OTP");
+            }
+
+            setEmail(trimmedEmail);
+            setOtpVerified(true);
+            toast.success("OTP verified. Set your new password.");
+        } catch (error) {
+            const message = error.response?.data?.message ||
+                "Unable to verify OTP. Please try again.";
+            toast.error(message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -384,11 +426,12 @@ const ResetPassword = () => {
                                     value={email}
                                     onChange={(
                                         event
-                                    ) =>
+                                    ) => {
                                         setEmail(
                                             event.target.value
-                                        )
-                                    }
+                                        );
+                                        setOtpVerified(false);
+                                    }}
                                     placeholder="Enter your email"
                                     autoComplete="email"
                                     disabled={loading}
@@ -430,6 +473,22 @@ const ResetPassword = () => {
                         </div>
 
 
+                        {!otpVerified ? (
+                            <button
+                                type="button"
+                                onClick={handleVerifyOTP}
+                                disabled={loading}
+                                className="w-full h-12 rounded-xl bg-black text-white font-medium flex items-center justify-center gap-2 transition hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {loading ? (
+                                    <>
+                                        <LoaderCircle size={18} className="animate-spin" />
+                                        Verifying OTP...
+                                    </>
+                                ) : "Verify OTP"}
+                            </button>
+                        ) : (
+                            <>
                         {/* NEW PASSWORD */}
 
                         <div>
@@ -612,6 +671,8 @@ const ResetPassword = () => {
                             )}
 
                         </button>
+                            </>
+                        )}
 
                     </form>
 

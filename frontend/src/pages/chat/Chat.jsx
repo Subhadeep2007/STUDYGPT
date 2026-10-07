@@ -296,53 +296,57 @@ const Chat = () => {
             // isliye chat dobara load karke usse screen par dikhao.
             await loadCurrentChat(chatId);
 
-            toast.error(
-                error.response &&
-                error.response.data &&
-                error.response.data.message
-                    ? error.response.data.message
-                    : "Failed to send message"
-            );
+            // Let ChatComposer show the error and keep its draft intact.
+            throw error;
         } finally {
             setSendingMessage(false);
         }
     };
 
     const handleMessageUpdated = (data) => {
-        if (!data) {
-            return;
-        }
-
-        if (
-            data.userMessage &&
-            data.assistantMessage
-        ) {
-            setMessages((previousMessages) => {
-                return previousMessages.map((message) => {
-                    const messageId = message._id || message.id;
-                    const updatedUserId =
-                        data.userMessage._id || data.userMessage.id;
-                    const updatedAssistantId =
-                        data.assistantMessage._id ||
-                        data.assistantMessage.id;
-
-                    if (messageId === updatedUserId) {
-                        return data.userMessage;
-                    }
-
-                    if (messageId === updatedAssistantId) {
-                        return data.assistantMessage;
-                    }
-
-                    return message;
-                });
-            });
-
+        if (data?.reload) {
+            loadCurrentChat(chatId);
             refreshChatList();
             return;
         }
 
-        loadCurrentChat(chatId);
+        if (!data?.userMessage || !data?.assistantMessage) {
+            if (!data?.pending || !data?.userMessage) {
+                loadCurrentChat(chatId);
+                refreshChatList();
+                return;
+            }
+        }
+
+        const editedUserId = String(
+            data.userMessage._id || data.userMessage.id
+        );
+        // The server removes later turns and creates a new assistant ID.
+        // Reconcile against the latest state so an older render cannot leave
+        // the saved edit hidden until the user reloads the page.
+        setMessages((previousMessages) => {
+            const editedIndex = previousMessages.findIndex((message) => {
+                return String(message._id || message.id) === editedUserId;
+            });
+
+            if (editedIndex === -1) {
+                return [
+                    ...previousMessages,
+                    data.userMessage,
+                    ...(data.assistantMessage ? [data.assistantMessage] : [])
+                ];
+            }
+
+            return [
+                ...previousMessages.slice(0, editedIndex),
+                data.userMessage,
+                ...(data.assistantMessage ? [data.assistantMessage] : [])
+            ];
+        });
+
+        if (!data.pending) {
+            refreshChatList();
+        }
     };
 
     const handleMessageDeleted = (messageId) => {

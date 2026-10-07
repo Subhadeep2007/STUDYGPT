@@ -478,6 +478,8 @@ const getConversationHistory =
 
 
             history.push({
+                id: message._id.toString(),
+
                 role: message.role,
 
                 content: message.content,

@@ -16,6 +16,10 @@ import {
     generateAIResponse
 } from "../../services/ai/gemini.service.js";
 
+import {
+    generateOpenRouterResponse
+} from "../../services/ai/openrouter.service.js";
+
 
 // ========================================
 // SEND MESSAGE + AI RESPONSE
@@ -26,7 +30,9 @@ const sendMessageController = async(
     res,
     next
 ) => {
+
     try {
+
         const userId =
             req.user.userId;
 
@@ -38,21 +44,24 @@ const sendMessageController = async(
 
         let attachments = [];
 
+
         if (req.body.attachments) {
+
             if (
                 Array.isArray(
                     req.body.attachments
                 )
             ) {
+
                 attachments =
                     req.body.attachments;
             }
         }
 
 
-        // ================================
+        // ========================================
         // CHECK CHAT
-        // ================================
+        // ========================================
 
         const chat =
             await Chat.findOne({
@@ -63,6 +72,7 @@ const sendMessageController = async(
 
 
         if (!chat) {
+
             return res.status(404).json({
                 success: false,
                 message: "Chat not found"
@@ -70,11 +80,11 @@ const sendMessageController = async(
         }
 
 
-        // ================================
+        // ========================================
         // GET PREVIOUS HISTORY
         // IMPORTANT:
         // Current message is not included yet
-        // ================================
+        // ========================================
 
         const history =
             await getConversationHistory({
@@ -83,9 +93,9 @@ const sendMessageController = async(
             });
 
 
-        // ================================
+        // ========================================
         // CREATE USER MESSAGE
-        // ================================
+        // ========================================
 
         const userMessage =
             await createUserMessage({
@@ -96,14 +106,32 @@ const sendMessageController = async(
             });
 
 
-        // ================================
+        // ========================================
         // GENERATE AI RESPONSE
-        // ================================
+        // GEMINI FIRST
+        // OPENROUTER FALLBACK
+        // ========================================
 
-        let aiResult;
+        let aiResult = null;
 
+        let aiProvider =
+            "gemini";
+
+        let geminiError = null;
+
+        let openRouterError = null;
+
+
+        // ========================================
+        // TRY GEMINI
+        // ========================================
 
         try {
+
+            console.log(
+                "Trying Gemini..."
+            );
+
 
             aiResult =
                 await generateAIResponse({
@@ -113,62 +141,187 @@ const sendMessageController = async(
                     attachments
                 });
 
+
+            console.log(
+                "Gemini response received"
+            );
+
         } catch (error) {
 
-            // ============================
-            // SAVE FAILED AI MESSAGE
-            // ============================
+            geminiError =
+                error;
+
+
+            console.error(
+                "Gemini failed:"
+            );
+
+            console.error(
+                "Message:",
+                error.message
+            );
+
+            console.error(
+                "Status:",
+                error.status
+            );
+
+            console.error(
+                "Code:",
+                error.code
+            );
+
+
+            // ========================================
+            // TRY OPENROUTER FALLBACK
+            // ========================================
+
+            try {
+
+                console.log(
+                    "Trying OpenRouter Free fallback..."
+                );
+
+
+                aiResult =
+                    await generateOpenRouterResponse({
+                        history,
+                        message: content
+                    });
+
+
+                aiProvider =
+                    "openrouter";
+
+
+                console.log(
+                    "OpenRouter fallback succeeded"
+                );
+
+            } catch (error) {
+
+                openRouterError =
+                    error;
+
+
+                console.error(
+                    "OpenRouter failed:"
+                );
+
+                console.error(
+                    "Message:",
+                    error.message
+                );
+
+                console.error(
+                    "Status:",
+                    error.status
+                );
+
+                console.error(
+                    "Code:",
+                    error.code
+                );
+            }
+        }
+
+
+        // ========================================
+        // BOTH AI PROVIDERS FAILED
+        // ========================================
+
+        if (!aiResult) {
+
+            let combinedError =
+                "AI response failed.";
+
+
+            if (geminiError) {
+
+                combinedError +=
+                    " Gemini: " +
+                    geminiError.message;
+            }
+
+
+            if (openRouterError) {
+
+                combinedError +=
+                    " OpenRouter: " +
+                    openRouterError.message;
+            }
+
 
             await createFailedAssistantMessage({
                 userId,
                 chatId,
 
-                errorMessage: error.message,
+                errorMessage: combinedError,
 
-                model: process.env.GEMINI_MODEL ||
-                    "gemini-3.8-flash"
+                model: process.env.OPENROUTER_MODEL ||
+                    "openrouter/free"
             });
+
+
+            const error =
+                new Error(
+                    combinedError
+                );
+
+
+            error.statusCode = 503;
 
 
             throw error;
         }
 
 
-        // ================================
+        // ========================================
         // SAVE AI RESPONSE
-        // ================================
+        // ========================================
 
         const assistantMessage =
             await createAssistantMessage({
                 userId,
-
                 chatId,
 
                 content: aiResult.text,
 
-                model: aiResult.model,
+                model: aiResult.model ||
+                    (
+                        aiProvider === "gemini" ?
+                        process.env.GEMINI_MODEL ||
+                        "gemini-3.8-flash" :
+                        process.env.OPENROUTER_MODEL ||
+                        "openrouter/free"
+                    ),
 
                 status: "completed"
             });
 
 
-        // ================================
+        // ========================================
         // RESPONSE
-        // ================================
+        // ========================================
 
         return res.status(200).json({
+
             success: true,
 
             message: "Message sent successfully",
 
             data: {
+
                 userMessage,
 
                 assistantMessage
+
             }
+
         });
 
     } catch (error) {
+
         next(error);
     }
 };
@@ -184,6 +337,7 @@ const getChatMessagesController =
         res,
         next
     ) => {
+
         try {
 
             const userId =
@@ -201,16 +355,21 @@ const getChatMessagesController =
 
 
             return res.status(200).json({
+
                 success: true,
 
                 message: "Messages fetched successfully",
 
                 data: {
+
                     messages
+
                 }
+
             });
 
         } catch (error) {
+
             next(error);
         }
     };
@@ -226,6 +385,7 @@ const getMessageController =
         res,
         next
     ) => {
+
         try {
 
             const result =
@@ -237,14 +397,17 @@ const getMessageController =
 
 
             return res.status(200).json({
+
                 success: true,
 
                 message: "Message fetched successfully",
 
                 data: result
+
             });
 
         } catch (error) {
+
             next(error);
         }
     };
@@ -260,6 +423,7 @@ const editMessageController =
         res,
         next
     ) => {
+
         try {
 
             const userId =
@@ -272,9 +436,9 @@ const editMessageController =
                 req.body.content;
 
 
-            // ============================
+            // ========================================
             // GET OLD MESSAGE
-            // ============================
+            // ========================================
 
             const oldMessage =
                 await getMessageById({
@@ -283,16 +447,20 @@ const editMessageController =
                 });
 
 
-            // ============================
+            // ========================================
             // ONLY USER MESSAGE
-            // ============================
+            // ========================================
 
             if (
                 oldMessage.role !== "user"
             ) {
+
                 return res.status(400).json({
+
                     success: false,
+
                     message: "Only user messages can be edited"
+
                 });
             }
 
@@ -301,22 +469,10 @@ const editMessageController =
                 oldMessage.chatId;
 
 
-            // ============================
-            // DELETE EVERYTHING AFTER
-            // OLD AI RESPONSE INCLUDED
-            // ============================
-
-            await deleteMessagesAfter({
-                userId,
-                chatId,
-
-                createdAt: oldMessage.createdAt
-            });
-
-
-            // ============================
-            // EDIT USER MESSAGE
-            // ============================
+            // ========================================
+            // UPDATE THE USER MESSAGE FIRST. This also validates the
+            // replacement text before any later turns are removed.
+            // ========================================
 
             const editedMessage =
                 await editUserMessage({
@@ -328,9 +484,21 @@ const editMessageController =
                 });
 
 
-            // ============================
+            // ========================================
+            // DELETE EVERYTHING AFTER
+            // OLD AI RESPONSE INCLUDED
+            // ========================================
+
+            await deleteMessagesAfter({
+                userId,
+                chatId,
+                createdAt: oldMessage.createdAt
+            });
+
+
+            // ========================================
             // GET UPDATED HISTORY
-            // ============================
+            // ========================================
 
             const updatedHistory =
                 await getConversationHistory({
@@ -339,26 +507,41 @@ const editMessageController =
                 });
 
 
-            // ============================
+            // ========================================
             // REMOVE CURRENT EDITED MESSAGE
             // FROM HISTORY
-            // ============================
+            // ========================================
 
-            const historyForAI =
-                updatedHistory.slice(
-                    0,
-                    updatedHistory.length - 1
-                );
+            const historyForAI = updatedHistory.filter((item) => {
+                return String(item.id) !== String(editedMessage._id);
+            });
 
 
-            // ============================
+            // ========================================
             // GENERATE NEW AI RESPONSE
-            // ============================
+            // GEMINI FIRST
+            // OPENROUTER FALLBACK
+            // ========================================
 
-            let aiResult;
+            let aiResult = null;
 
+            let aiProvider = "gemini";
+
+            let geminiError = null;
+
+            let openRouterError = null;
+
+
+            // ========================================
+            // TRY GEMINI
+            // ========================================
 
             try {
+
+                console.log(
+                    "Trying Gemini for edited message..."
+                );
+
 
                 aiResult =
                     await generateAIResponse({
@@ -371,54 +554,152 @@ const editMessageController =
                         attachments: editedMessage.attachments
                     });
 
+
+                console.log(
+                    "Gemini edit response received"
+                );
+
             } catch (error) {
 
-                await createFailedAssistantMessage({
-                    userId,
-                    chatId,
-
-                    errorMessage: error.message,
-
-                    model: process.env.GEMINI_MODEL ||
-                        "gemini-3.8-flash"
-                });
+                geminiError =
+                    error;
 
 
-                throw error;
+                console.error(
+                    "Gemini edit failed:",
+                    error.message
+                );
+
+
+                // ========================================
+                // TRY OPENROUTER
+                // ========================================
+
+                try {
+
+                    console.log(
+                        "Trying OpenRouter Free fallback for edited message..."
+                    );
+
+
+                    aiResult =
+                        await generateOpenRouterResponse({
+                            history: historyForAI,
+
+                            message: editedMessage.content
+                        });
+
+                    aiProvider = "openrouter";
+
+
+                    console.log(
+                        "OpenRouter edit fallback succeeded"
+                    );
+
+                } catch (error) {
+
+                    openRouterError =
+                        error;
+
+
+                    console.error(
+                        "OpenRouter edit failed:",
+                        error.message
+                    );
+                }
             }
 
 
-            // ============================
+            // ========================================
+            // BOTH PROVIDERS FAILED
+            // ========================================
+
+            if (!aiResult) {
+
+                let combinedError =
+                    "AI response failed.";
+
+
+                if (geminiError) {
+
+                    combinedError +=
+                        " Gemini: " +
+                        geminiError.message;
+                }
+
+
+                if (openRouterError) {
+
+                    combinedError +=
+                        " OpenRouter: " +
+                        openRouterError.message;
+                }
+
+
+                const failedAssistantMessage =
+                    await createFailedAssistantMessage({
+                    userId,
+                    chatId,
+
+                    errorMessage: combinedError,
+
+                    model: process.env.OPENROUTER_MODEL ||
+                        "openrouter/free"
+                });
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Message updated, but AI could not generate a response.",
+                    data: {
+                        userMessage: editedMessage,
+                        assistantMessage: failedAssistantMessage
+                    }
+                });
+            }
+
+
+            // ========================================
             // SAVE NEW AI RESPONSE
-            // ============================
+            // ========================================
 
             const assistantMessage =
                 await createAssistantMessage({
                     userId,
-
                     chatId,
 
                     content: aiResult.text,
 
-                    model: aiResult.model,
+                    model: aiResult.model ||
+                        (aiProvider === "gemini" ?
+                            process.env.GEMINI_MODEL || "gemini-3.8-flash" :
+                            process.env.OPENROUTER_MODEL || "openrouter/free"),
 
                     status: "completed"
                 });
 
 
+            // ========================================
+            // RESPONSE
+            // ========================================
+
             return res.status(200).json({
+
                 success: true,
 
                 message: "Message edited and AI response regenerated successfully",
 
                 data: {
+
                     userMessage: editedMessage,
 
                     assistantMessage
+
                 }
+
             });
 
         } catch (error) {
+
             next(error);
         }
     };
@@ -434,6 +715,7 @@ const deleteMessageController =
         res,
         next
     ) => {
+
         try {
 
             const result =
@@ -445,14 +727,17 @@ const deleteMessageController =
 
 
             return res.status(200).json({
+
                 success: true,
 
                 message: "Message deleted successfully",
 
                 data: result
+
             });
 
         } catch (error) {
+
             next(error);
         }
     };
@@ -463,9 +748,15 @@ const deleteMessageController =
 // ========================================
 
 export {
+
     sendMessageController,
+
     getChatMessagesController,
+
     getMessageController,
+
     editMessageController,
+
     deleteMessageController
+
 };

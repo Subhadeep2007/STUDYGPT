@@ -9,6 +9,7 @@ import {
     refreshToken,
     logout,
     forgotPasswordController,
+    verifyResetPasswordOTPController,
     resetPasswordController,
     changePasswordController
 } from "../controllers/auth/auth.controller.js";
@@ -23,6 +24,7 @@ import {
     resendVerificationSchema,
     loginSchema,
     forgotPasswordSchema,
+    verifyResetPasswordSchema,
     resetPasswordSchema,
     changePasswordSchema
 } from "../validators/auth.validator.js";
@@ -85,6 +87,14 @@ router.post(
     authRateLimiter,
     validate(resetPasswordSchema),
     resetPasswordController
+);
+
+
+router.post(
+    "/verify-reset-password-otp",
+    authRateLimiter,
+    validate(verifyResetPasswordSchema),
+    verifyResetPasswordOTPController
 );
 
 

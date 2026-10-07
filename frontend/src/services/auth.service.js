@@ -157,6 +157,19 @@ const resetPassword = async({
 };
 
 
+const verifyResetPasswordOTP = async({
+    email,
+    otp
+}) => {
+    const response = await api.post(
+        "/api/auth/verify-reset-password-otp",
+        { email, otp }
+    );
+
+    return response.data;
+};
+
+
 // ========================================
 // CHANGE PASSWORD
 // ========================================
@@ -186,6 +199,7 @@ export {
     refreshAuthSession,
     logoutUser,
     forgotPassword,
+    verifyResetPasswordOTP,
     resetPassword,
     changePassword
 };
