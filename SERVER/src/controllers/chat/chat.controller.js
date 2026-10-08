@@ -1,5 +1,6 @@
 import Chat from "../../models/chat.js";
 
+
 import {
     createUserMessage,
     createAssistantMessage,
@@ -12,9 +13,11 @@ import {
     getConversationHistory
 } from "../../services/message/message.service.js";
 
+
 import {
     generateAIResponse
 } from "../../services/ai/gemini.service.js";
+
 
 import {
     generateOpenRouterResponse
@@ -36,16 +39,21 @@ const sendMessageController = async(
         const userId =
             req.user.userId;
 
+
         const chatId =
             req.body.chatId;
+
 
         const content =
             req.body.content;
 
+
         let attachments = [];
 
 
-        if (req.body.attachments) {
+        if (
+            req.body.attachments
+        ) {
 
             if (
                 Array.isArray(
@@ -65,8 +73,11 @@ const sendMessageController = async(
 
         const chat =
             await Chat.findOne({
+
                 _id: chatId,
-                userId,
+
+                userId: userId,
+
                 isDeleted: false
             });
 
@@ -74,7 +85,9 @@ const sendMessageController = async(
         if (!chat) {
 
             return res.status(404).json({
+
                 success: false,
+
                 message: "Chat not found"
             });
         }
@@ -82,13 +95,13 @@ const sendMessageController = async(
 
         // ========================================
         // GET PREVIOUS HISTORY
-        // IMPORTANT:
-        // Current message is not included yet
         // ========================================
 
         const history =
             await getConversationHistory({
+
                 userId,
+
                 chatId
             });
 
@@ -99,27 +112,37 @@ const sendMessageController = async(
 
         const userMessage =
             await createUserMessage({
+
                 userId,
+
                 chatId,
+
                 content,
+
                 attachments
             });
 
 
         // ========================================
-        // GENERATE AI RESPONSE
+        // AI GENERATION
         // GEMINI FIRST
         // OPENROUTER FALLBACK
         // ========================================
 
-        let aiResult = null;
+        let aiResult =
+            null;
+
 
         let aiProvider =
             "gemini";
 
-        let geminiError = null;
 
-        let openRouterError = null;
+        let geminiError =
+            null;
+
+
+        let openRouterError =
+            null;
 
 
         // ========================================
@@ -129,15 +152,27 @@ const sendMessageController = async(
         try {
 
             console.log(
-                "Trying Gemini..."
+                "================================="
+            );
+
+            console.log(
+                "TRYING GEMINI"
+            );
+
+            console.log(
+                "================================="
             );
 
 
             aiResult =
                 await generateAIResponse({
+
                     userId,
+
                     history,
+
                     message: content,
+
                     attachments
                 });
 
@@ -145,6 +180,7 @@ const sendMessageController = async(
             console.log(
                 "Gemini response received"
             );
+
 
         } catch (error) {
 
@@ -173,20 +209,33 @@ const sendMessageController = async(
 
 
             // ========================================
-            // TRY OPENROUTER FALLBACK
+            // OPENROUTER FALLBACK
+            // TEXT + PDF + IMAGE
             // ========================================
 
             try {
 
                 console.log(
-                    "Trying OpenRouter Free fallback..."
+                    "================================="
+                );
+
+                console.log(
+                    "TRYING OPENROUTER FALLBACK"
+                );
+
+                console.log(
+                    "================================="
                 );
 
 
                 aiResult =
                     await generateOpenRouterResponse({
+
                         history,
-                        message: content
+
+                        message: content,
+
+                        attachments
                     });
 
 
@@ -197,6 +246,7 @@ const sendMessageController = async(
                 console.log(
                     "OpenRouter fallback succeeded"
                 );
+
 
             } catch (error) {
 
@@ -236,7 +286,9 @@ const sendMessageController = async(
                 "AI response failed.";
 
 
-            if (geminiError) {
+            if (
+                geminiError
+            ) {
 
                 combinedError +=
                     " Gemini: " +
@@ -244,7 +296,9 @@ const sendMessageController = async(
             }
 
 
-            if (openRouterError) {
+            if (
+                openRouterError
+            ) {
 
                 combinedError +=
                     " OpenRouter: " +
@@ -253,7 +307,9 @@ const sendMessageController = async(
 
 
             await createFailedAssistantMessage({
+
                 userId,
+
                 chatId,
 
                 errorMessage: combinedError,
@@ -269,7 +325,8 @@ const sendMessageController = async(
                 );
 
 
-            error.statusCode = 503;
+            error.statusCode =
+                503;
 
 
             throw error;
@@ -282,7 +339,9 @@ const sendMessageController = async(
 
         const assistantMessage =
             await createAssistantMessage({
+
                 userId,
+
                 chatId,
 
                 content: aiResult.text,
@@ -317,8 +376,8 @@ const sendMessageController = async(
                 assistantMessage
 
             }
-
         });
+
 
     } catch (error) {
 
@@ -343,13 +402,16 @@ const getChatMessagesController =
             const userId =
                 req.user.userId;
 
+
             const chatId =
                 req.params.chatId;
 
 
             const messages =
                 await getMessagesByChat({
+
                     userId,
+
                     chatId
                 });
 
@@ -365,8 +427,8 @@ const getChatMessagesController =
                     messages
 
                 }
-
             });
+
 
         } catch (error) {
 
@@ -390,6 +452,7 @@ const getMessageController =
 
             const result =
                 await getMessageById({
+
                     userId: req.user.userId,
 
                     messageId: req.params.messageId
@@ -403,8 +466,8 @@ const getMessageController =
                 message: "Message fetched successfully",
 
                 data: result
-
             });
+
 
         } catch (error) {
 
@@ -429,8 +492,10 @@ const editMessageController =
             const userId =
                 req.user.userId;
 
+
             const messageId =
                 req.params.messageId;
+
 
             const newContent =
                 req.body.content;
@@ -442,7 +507,9 @@ const editMessageController =
 
             const oldMessage =
                 await getMessageById({
+
                     userId,
+
                     messageId
                 });
 
@@ -460,7 +527,6 @@ const editMessageController =
                     success: false,
 
                     message: "Only user messages can be edited"
-
                 });
             }
 
@@ -470,12 +536,31 @@ const editMessageController =
 
 
             // ========================================
-            // UPDATE THE USER MESSAGE FIRST. This also validates the
-            // replacement text before any later turns are removed.
+            // GET OLD ATTACHMENTS
+            // ========================================
+
+            let oldAttachments = [];
+
+
+            if (
+                oldMessage.attachments &&
+                Array.isArray(
+                    oldMessage.attachments
+                )
+            ) {
+
+                oldAttachments =
+                    oldMessage.attachments;
+            }
+
+
+            // ========================================
+            // UPDATE USER MESSAGE
             // ========================================
 
             const editedMessage =
                 await editUserMessage({
+
                     userId,
 
                     messageId,
@@ -485,13 +570,15 @@ const editMessageController =
 
 
             // ========================================
-            // DELETE EVERYTHING AFTER
-            // OLD AI RESPONSE INCLUDED
+            // DELETE MESSAGES AFTER
             // ========================================
 
             await deleteMessagesAfter({
+
                 userId,
+
                 chatId,
+
                 createdAt: oldMessage.createdAt
             });
 
@@ -502,19 +589,29 @@ const editMessageController =
 
             const updatedHistory =
                 await getConversationHistory({
+
                     userId,
+
                     chatId
                 });
 
 
             // ========================================
-            // REMOVE CURRENT EDITED MESSAGE
-            // FROM HISTORY
+            // REMOVE EDITED MESSAGE FROM HISTORY
             // ========================================
 
-            const historyForAI = updatedHistory.filter((item) => {
-                return String(item.id) !== String(editedMessage._id);
-            });
+            const historyForAI =
+                updatedHistory.filter((item) => {
+
+                    return (
+                        String(
+                            item.id
+                        ) !==
+                        String(
+                            editedMessage._id
+                        )
+                    );
+                });
 
 
             // ========================================
@@ -523,13 +620,20 @@ const editMessageController =
             // OPENROUTER FALLBACK
             // ========================================
 
-            let aiResult = null;
+            let aiResult =
+                null;
 
-            let aiProvider = "gemini";
 
-            let geminiError = null;
+            let aiProvider =
+                "gemini";
 
-            let openRouterError = null;
+
+            let geminiError =
+                null;
+
+
+            let openRouterError =
+                null;
 
 
             // ========================================
@@ -545,19 +649,21 @@ const editMessageController =
 
                 aiResult =
                     await generateAIResponse({
+
                         userId,
 
                         history: historyForAI,
 
                         message: editedMessage.content,
 
-                        attachments: editedMessage.attachments
+                        attachments: oldAttachments
                     });
 
 
                 console.log(
                     "Gemini edit response received"
                 );
+
 
             } catch (error) {
 
@@ -572,29 +678,36 @@ const editMessageController =
 
 
                 // ========================================
-                // TRY OPENROUTER
+                // OPENROUTER FALLBACK
+                // TEXT + PDF + IMAGE
                 // ========================================
 
                 try {
 
                     console.log(
-                        "Trying OpenRouter Free fallback for edited message..."
+                        "Trying OpenRouter fallback for edited message..."
                     );
 
 
                     aiResult =
                         await generateOpenRouterResponse({
+
                             history: historyForAI,
 
-                            message: editedMessage.content
+                            message: editedMessage.content,
+
+                            attachments: oldAttachments
                         });
 
-                    aiProvider = "openrouter";
+
+                    aiProvider =
+                        "openrouter";
 
 
                     console.log(
                         "OpenRouter edit fallback succeeded"
                     );
+
 
                 } catch (error) {
 
@@ -620,7 +733,9 @@ const editMessageController =
                     "AI response failed.";
 
 
-                if (geminiError) {
+                if (
+                    geminiError
+                ) {
 
                     combinedError +=
                         " Gemini: " +
@@ -628,7 +743,9 @@ const editMessageController =
                 }
 
 
-                if (openRouterError) {
+                if (
+                    openRouterError
+                ) {
 
                     combinedError +=
                         " OpenRouter: " +
@@ -638,20 +755,28 @@ const editMessageController =
 
                 const failedAssistantMessage =
                     await createFailedAssistantMessage({
-                    userId,
-                    chatId,
 
-                    errorMessage: combinedError,
+                        userId,
 
-                    model: process.env.OPENROUTER_MODEL ||
-                        "openrouter/free"
-                });
+                        chatId,
+
+                        errorMessage: combinedError,
+
+                        model: process.env.OPENROUTER_MODEL ||
+                            "openrouter/free"
+                    });
+
 
                 return res.status(200).json({
+
                     success: true,
+
                     message: "Message updated, but AI could not generate a response.",
+
                     data: {
+
                         userMessage: editedMessage,
+
                         assistantMessage: failedAssistantMessage
                     }
                 });
@@ -664,15 +789,21 @@ const editMessageController =
 
             const assistantMessage =
                 await createAssistantMessage({
+
                     userId,
+
                     chatId,
 
                     content: aiResult.text,
 
                     model: aiResult.model ||
-                        (aiProvider === "gemini" ?
-                            process.env.GEMINI_MODEL || "gemini-3.8-flash" :
-                            process.env.OPENROUTER_MODEL || "openrouter/free"),
+                        (
+                            aiProvider === "gemini" ?
+                            process.env.GEMINI_MODEL ||
+                            "gemini-3.8-flash" :
+                            process.env.OPENROUTER_MODEL ||
+                            "openrouter/free"
+                        ),
 
                     status: "completed"
                 });
@@ -695,8 +826,8 @@ const editMessageController =
                     assistantMessage
 
                 }
-
             });
+
 
         } catch (error) {
 
@@ -720,6 +851,7 @@ const deleteMessageController =
 
             const result =
                 await deleteMessage({
+
                     userId: req.user.userId,
 
                     messageId: req.params.messageId
@@ -733,8 +865,8 @@ const deleteMessageController =
                 message: "Message deleted successfully",
 
                 data: result
-
             });
+
 
         } catch (error) {
 

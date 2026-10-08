@@ -229,7 +229,103 @@ const uploadBufferToGemini = async({
     };
 };
 
+// ========================================
+// REFRESH GEMINI FILE FROM CLOUDINARY
+// ========================================
 
+const refreshGeminiFileFromCloudinary = async({
+    userId,
+    fileId
+}) => {
+
+    const file = await File.findOne({
+        _id: fileId,
+        userId
+    });
+
+    if (!file) {
+        throw new Error(
+            "File not found"
+        );
+    }
+
+    if (!file.cloudinaryUrl) {
+        throw new Error(
+            `Source file "${file.originalName}" is not available`
+        );
+    }
+
+    console.log(
+        `Refreshing Gemini file: ${file.originalName}`
+    );
+
+    const cloudinaryResponse =
+        await fetch(file.cloudinaryUrl);
+
+    if (!cloudinaryResponse.ok) {
+        throw new Error(
+            `Unable to download "${file.originalName}" from Cloudinary`
+        );
+    }
+
+    const arrayBuffer =
+        await cloudinaryResponse.arrayBuffer();
+
+    const buffer =
+        Buffer.from(arrayBuffer);
+
+    const geminiResult =
+        await uploadBufferToGemini({
+            buffer,
+            originalName: file.originalName,
+            mimeType: file.mimeType
+        });
+
+    if (!geminiResult ||
+        !geminiResult.name ||
+        !geminiResult.uri
+    ) {
+        throw new Error(
+            `Unable to refresh "${file.originalName}" on Gemini`
+        );
+    }
+
+    const updatedFile =
+        await File.findOneAndUpdate({
+            _id: fileId,
+            userId
+        }, {
+            $set: {
+                geminiFileName: geminiResult.name,
+
+                geminiFileUri: geminiResult.uri,
+
+                geminiMimeType: geminiResult.mimeType,
+
+                status: "ready"
+            }
+        }, {
+            new: true
+        });
+
+    if (!updatedFile) {
+        throw new Error(
+            "Unable to update refreshed Gemini file"
+        );
+    }
+
+    console.log(
+        `Gemini file refreshed successfully: ${file.originalName}`
+    );
+
+    return {
+        fileId: updatedFile._id,
+        originalName: updatedFile.originalName,
+        uri: updatedFile.geminiFileUri,
+        mimeType: updatedFile.geminiMimeType ||
+            updatedFile.mimeType
+    };
+};
 // ========================================
 // DELETE GEMINI FILE
 // ========================================
@@ -653,5 +749,6 @@ export {
     uploadFile,
     getFileById,
     getChatFiles,
-    deleteFile
+    deleteFile,
+    refreshGeminiFileFromCloudinary
 };
